@@ -1,0 +1,12 @@
+import React,{useEffect,useState} from 'react';
+import Layout from './components/Layout';
+import Home from './pages/Home';
+import Catalog from './pages/Catalog';
+import BookDetail from './pages/BookDetail';
+import Profile from './pages/Profile';
+import {Market,Sell} from './pages/Market';
+import {readState,writeState} from './storage';
+const readRoute=()=>window.location.hash.slice(1)||'/';
+export default function App(){const [initial]=useState(readState);const [state,setState]=useState(initial.data);const [error,setError]=useState(initial.error);const [location,setLocation]=useState(readRoute);useEffect(()=>{const change=()=>setLocation(readRoute());window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change)},[]);const [route,query='']=location.split('?');const params=new URLSearchParams(query);useEffect(()=>{window.scrollTo({top:0,behavior:'instant'});document.getElementById('main')?.focus({preventScroll:true});},[route]);useEffect(()=>{if(route.startsWith('/book/'))document.title='تفاصيل الكتاب | مكتبتي';else document.title=({'/':'مكتبتي — لكل قارئ حكاية','/catalog':'استكشف الكتب | مكتبتي','/profile':'ملفي المحلي | مكتبتي','/market':'سوق الكتب | مكتبتي','/sell':'إعلان جديد | مكتبتي'})[route]||'مكتبتي';},[route]);
+function update(updater){const next=updater(state);setState(next);setError(writeState(next));}function toggleFavorite(id){update(s=>({...s,favorites:s.favorites.includes(id)?s.favorites.filter(x=>x!==id):[...s.favorites,id]}));}function removeListing(id){update(s=>({...s,listings:s.listings.filter(l=>l.id!==id)}));}function navigate(to,scroll=true){if(!scroll){history.replaceState(null,'','#'+to);setLocation(to)}else window.location.hash=to;}
+const shared={state,update,toggleFavorite,navigate,removeListing};let page;if(route==='/')page=<Home {...shared}/>;else if(route==='/catalog')page=<Catalog {...shared} params={params}/>;else if(route.startsWith('/book/'))page=<BookDetail key={route} {...shared} id={route.slice(6)}/>;else if(route==='/market')page=<><div className="container">{params.has('created')&&<p className="success-notice" role="status">تمت إضافة الإعلان إلى قائمتك المحلية. لا يُنشر للآخرين؛ تحقق من أي تنبيه تخزين أعلاه.</p>}</div><Market {...shared}/></>;else if(route==='/sell')page=<Sell {...shared}/>;else if(route==='/profile')page=<Profile {...shared}/>;else page=<section className="container section"><h1>الصفحة غير موجودة</h1><a className="button" href="#/">العودة إلى الرئيسية</a></section>;return <Layout route={route} error={error}>{page}</Layout>}
